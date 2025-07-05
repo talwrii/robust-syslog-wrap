@@ -38,6 +38,8 @@ The logger command (part of bsdutils) can read from standard input and write to 
 ## Caveats
 Though this app gracefully handles syslog restarts by buffering messages, it does not deal with the wrapped process dying. This is left to a supervisor, such as systemd, supervisor, or circus, to monitor and restart the wrapped process if necessary.
 
+This software is reviewed vibe coding with tweaks.
+
 ## About me
 I am **@readwithai**. I create tools for reading, research and agency sometimes using the markdown editor [Obsidian](https://readwithai.substack.com/p/what-exactly-is-obsidian).
 

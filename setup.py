@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="syslog-wrap",  # Package name on PyPI
+    name="robust-syslog-wrap",  # Package name on PyPI
     version="1.0.0",  # Initial version
-    description="A tool to wrap commands and forward logs to syslog.",
+    description="A tool to wrap commands and forward standard out and stdin to syslog via TCP",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    author="Your Name",
-    author_email="your_email@example.com",
-    url="https://github.com/yourusername/syslog-wrap",  # Link to your GitHub or project repo
+    author="@readwithai",
+    author_email="talwrii@gmail.com",
+    url="https://github.com/talwrii/syslog-wrap",  # Link to your GitHub or project repo
     packages=find_packages(),
     install_requires=[  # Dependencies
         "asyncio",  # Or any other dependencies
@@ -25,4 +25,3 @@ setup(
     ],
     python_requires=">=3.6",  # Minimum Python version
 )
-
