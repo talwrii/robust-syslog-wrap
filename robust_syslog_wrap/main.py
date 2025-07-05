@@ -6,6 +6,8 @@ import subprocess
 import sys
 import time
 
+from . import log
+
 # Default Configurations
 SYSLOG_HOST = 'localhost'
 SYSLOG_PORT = 514
@@ -15,16 +17,6 @@ BUFFER_SIZE = 1024 * 1024 * 10  # Max buffer size (e.g., 10 million messages)
 # Async buffer for storing logs when syslog is down
 log_queue = asyncio.Queue(maxsize=BUFFER_SIZE)
 
-async def send_to_syslog(message, syslog_host, syslog_port):
-    """Send a message directly to the syslog server using TCP."""
-    try:
-        # Create TCP connection
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((syslog_host, syslog_port))
-            s.sendall(message.encode())
-            return True
-    except Exception as e:
-        return False  # Return False if sending fails
 
 async def writer_task(syslog_host, syslog_port, managed_process, retry_interval):
     """Async task to write messages to syslog."""
@@ -42,7 +34,7 @@ async def writer_task(syslog_host, syslog_port, managed_process, retry_interval)
                     first_write_start_time = time.time()
 
                 # Attempt to write to syslog
-                success = await send_to_syslog(message, syslog_host, syslog_port)
+                success = await log.send_to_syslog(message, syslog_host, syslog_port)
 
                 # Check if the first write attempt has taken more than 30 seconds
                 if not success and time.time() - first_write_start_time > 30:
@@ -68,7 +60,7 @@ async def writer_task(syslog_host, syslog_port, managed_process, retry_interval)
                     await asyncio.sleep(retry_interval)  # Wait before retrying
             else:
                 # Normal retry behavior after the first successful write
-                success = await send_to_syslog(message, syslog_host, syslog_port)
+                success = await log.send_to_syslog(message, syslog_host, syslog_port)
                 if not success:
                     # Log failure to stderr without the message
                     print(f"Failed to write to syslog ({syslog_host}:{syslog_port}). Retrying...", file=sys.stderr)
@@ -133,8 +125,8 @@ async def amain():
     stream_task = asyncio.create_task(produce_messages_from_process(process))
 
     loop = asyncio.get_event_loop()
-    loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown(loop, process)))
-    loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(shutdown(loop, process)))
+    loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown(process)))
+    loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(shutdown(process)))
 
 
     await process.wait()  # This will wait forever until the process exits
@@ -151,7 +143,7 @@ async def amain():
         sys.exit(1)  # Exit with an error code
 
 
-async def shutdown(loop, process):
+async def shutdown(process):
     """Gracefully shut down on receiving a signal."""
     print("Received signal, shutting down gracefully...")
     process.send_signal(signal.SIGTERM)  # First, send a SIGTERM to gracefully terminate the process
