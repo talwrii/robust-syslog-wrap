@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="robust-syslog-wrap",  # Package name on PyPI
-    version="1.0.0",  # Initial version
+    version="1.0.1",  # Initial version
     description="A tool to wrap commands and forward standard out and stdin to syslog via TCP",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
