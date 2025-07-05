@@ -1,19 +1,19 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="robust-syslog-wrap",  # Package name on PyPI
-    version="1.0.1",  # Initial version
+    name="robust-syslog-wrap",
+    version="1.0.2",
     description="A tool to wrap commands and forward standard out and stdin to syslog via TCP",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     author="@readwithai",
     author_email="talwrii@gmail.com",
-    url="https://github.com/talwrii/syslog-wrap",  # Link to your GitHub or project repo
+    url="https://github.com/talwrii/syslog-wrap",
     packages=find_packages(),
-    install_requires=[  # Dependencies
-        "asyncio",  # Or any other dependencies
+    install_requires=[
+        "asyncio",
     ],
-    entry_points={  # CLI entry point
+    entry_points={
         "console_scripts": [
             "robust-syslog-wrap=robust_syslog_wrap.main:main",
         ]
@@ -23,5 +23,5 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",  # Minimum Python version
+    python_requires=">=3.6",
 )
