@@ -132,6 +132,11 @@ async def amain():
     # Create tasks for the stream reading
     stream_task = asyncio.create_task(produce_messages_from_process(process))
 
+    loop = asyncio.get_event_loop()
+    loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown(loop, process)))
+    loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(shutdown(loop, process)))
+
+
     await process.wait()  # This will wait forever until the process exits
 
     try:
@@ -144,6 +149,22 @@ async def amain():
         print(f"Flushing logs to syslog ({syslog_host}:{syslog_port}). Giving up.", file=sys.stderr)
         # Optionally, handle cleanup or process termination here
         sys.exit(1)  # Exit with an error code
+
+
+async def shutdown(loop, process):
+    """Gracefully shut down on receiving a signal."""
+    print("Received signal, shutting down gracefully...")
+    process.send_signal(signal.SIGTERM)  # First, send a SIGTERM to gracefully terminate the process
+
+    try:
+        # Wait for process to terminate within 30 seconds
+        await asyncio.wait_for(process.wait(), timeout=30)
+        print("Process exited gracefully.")
+    except asyncio.TimeoutError:
+        # If process doesn't terminate within 30 seconds, send SIGKILL
+        print("Process did not exit within 30 seconds. Sending SIGKILL...", file=sys.stderr)
+        process.kill()  # Forcefully terminate the process with SIGKILL
+        print("Process killed.")
 
 
 def main():
