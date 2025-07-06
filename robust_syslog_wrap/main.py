@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import signal
-import socket
 import subprocess
 import sys
 import time
@@ -18,7 +17,7 @@ BUFFER_SIZE = 1024 * 1024 * 10  # Max buffer size (e.g., 10 million messages)
 log_queue = asyncio.Queue(maxsize=BUFFER_SIZE)
 
 
-async def writer_task(syslog_host, syslog_port, managed_process, retry_interval):
+async def writer_task(app_name, syslog_host, syslog_port, managed_process, retry_interval):
     """Async task to write messages to syslog."""
     first_write_attempt = True  # Flag to track the first write attempt
     first_write_start_time = None  # To track the time of the first write attempt
@@ -34,7 +33,7 @@ async def writer_task(syslog_host, syslog_port, managed_process, retry_interval)
                     first_write_start_time = time.time()
 
                 # Attempt to write to syslog
-                success = await log.send_to_syslog(message, syslog_host, syslog_port)
+                success = await log.send_to_syslog(app_name, syslog_host, syslog_port, message)
 
                 # Check if the first write attempt has taken more than 30 seconds
                 if not success and time.time() - first_write_start_time > 30:
@@ -60,7 +59,7 @@ async def writer_task(syslog_host, syslog_port, managed_process, retry_interval)
                     await asyncio.sleep(retry_interval)  # Wait before retrying
             else:
                 # Normal retry behavior after the first successful write
-                success = await log.send_to_syslog(message, syslog_host, syslog_port)
+                success = await log.send_to_syslog(app_name, syslog_host, syslog_port, message)
                 if not success:
                     # Log failure to stderr without the message
                     print(f"Failed to write to syslog ({syslog_host}:{syslog_port}). Retrying...", file=sys.stderr)
@@ -92,6 +91,7 @@ async def amain():
     """Main entry point to run the syslog wrapper."""
     parser = argparse.ArgumentParser(description="Wrap a command and forward logs to syslog.")
     parser.add_argument("rest", nargs=argparse.REMAINDER, help="The command and its arguments to run and capture logs")
+    parser.add_argument("--app", help="Application name to log with syslog. Defaults to the command-name.")
     parser.add_argument("--host", default=SYSLOG_HOST, help="Syslog server host (default: localhost)")
     parser.add_argument("--port", type=int, default=SYSLOG_PORT, help="Syslog server port (default: 514)")
     parser.add_argument("--buffer-size", type=int, default=BUFFER_SIZE, help="Buffer size in bytes (default: 10 million messages)")
@@ -109,6 +109,9 @@ async def amain():
     global log_queue
     log_queue = asyncio.Queue(maxsize=buffer_size)
 
+    # Set the app name, using either --app or the first command argument
+    app_name = args.app if args.app else args.rest[0]
+
     if not args.rest:
         print("No command provided to run.")
         sys.exit(1)
@@ -119,7 +122,7 @@ async def amain():
                                                    stderr=subprocess.PIPE)
 
     # Start the writer task in the background with the provided retry_interval
-    writer_task_instance = asyncio.create_task(writer_task(syslog_host, syslog_port, process, retry_interval))
+    writer_task_instance = asyncio.create_task(writer_task(app_name, syslog_host, syslog_port, process, retry_interval))
 
     # Create tasks for the stream reading
     stream_task = asyncio.create_task(produce_messages_from_process(process))

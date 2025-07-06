@@ -12,7 +12,7 @@ def syslog_priority():
     """Calculate syslog priority using hardcoded facility and severity."""
     return (FACILITY * 8) + SEVERITY
 
-def format_syslog_message(message):
+def format_syslog_message(message, app_name):
     """Format the syslog message with timestamp, hostname, and priority."""
     try:
         # Validate that the message is not empty
@@ -27,17 +27,17 @@ def format_syslog_message(message):
         if len(message) > 1024:
             raise ValueError("Message is too long (over 1024 characters).")
 
-        formatted_message = f"<{priority}>{timestamp} {hostname} my_app: {message}\n"
+        formatted_message = f"<{priority}>{timestamp} {hostname} {app_name}: {message}\n"
         return formatted_message
     except ValueError as e:
         print(f"Error formatting syslog message: {e}")
         return None  # Return None if there's an error
 
-async def send_to_syslog(message, syslog_host, syslog_port):
+async def send_to_syslog(app_name, syslog_host, syslog_port, message):
     """Send a message directly to the syslog server using TCP."""
     try:
         # Format the syslog message
-        syslog_message = format_syslog_message(message)
+        syslog_message = format_syslog_message(message, app_name)
 
         if not syslog_message:
             return False  # If the message is invalid, don't send
@@ -55,9 +55,10 @@ async def send_to_syslog(message, syslog_host, syslog_port):
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Send a message to a syslog server.")
+    parser.add_argument("app", help="The application name.")
+    parser.add_argument("syslog_host", help="The syslog server hostname or IP address.")
+    parser.add_argument("syslog_port", type=int, default=514, help="The syslog server port (default: 514).")
     parser.add_argument("message", help="The message to send to syslog.")
-    parser.add_argument("--host", required=True, help="The syslog server hostname or IP address (required).")
-    parser.add_argument("--port", type=int, default=514, help="The syslog server port (default: 514).")
 
     return parser.parse_args()
 
@@ -67,7 +68,7 @@ async def main():
     args = parse_args()
 
     # Send the message to the syslog server
-    result = await send_to_syslog(args.message, args.host, args.port)
+    result = await send_to_syslog(args.app, args.syslog_host, args.syslog_port, args.message)
     print(f"Message sent: {result}")
 
 # Run the async function
