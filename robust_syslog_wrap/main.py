@@ -85,6 +85,8 @@ async def read_stream(stream, output_stream):
     """Read from a stream, output to sys.stdout or sys.stderr, and log to syslog."""
     async for line in async_read_lines(stream):
         print(line, file=output_stream)  # Print to stdout or stderr
+        if line.strip() == "":  # <-- skip empty or whitespace-only lines, including those with just \r or spaces
+            continue
         await log_queue.put(line)  # Log to syslog
 
 async def amain():
